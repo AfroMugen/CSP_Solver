@@ -12,6 +12,22 @@ class CSP():
         self.forward_check = forward_check
 
     def get_arcs(self):
+        """
+        Summary line.
+
+        Extended description of function.
+
+        Parameters
+        ----------
+        arg1 : int
+            Description of arg1
+
+        Returns
+        -------
+        int
+            Description of return value
+
+        """
         arcs = []
         for variable in self.constraints:
             for constraint in self.constraints[variable]:
@@ -21,6 +37,22 @@ class CSP():
         return arcs
 
     def back_track(self, assignment: dict = {}):
+        """
+        Summary line.
+
+        Extended description of function.
+
+        Parameters
+        ----------
+        arg1 : int
+            Description of arg1
+
+        Returns
+        -------
+        int
+            Description of return value
+
+        """
         print("\n\033[91mCurrent assignment:\033[0m %s" % assignment)
         if len(assignment) == len(self.variables):
             return assignment
@@ -34,45 +66,173 @@ class CSP():
                 # print("Variable %d: %d is consistent" % (var, value))
                 assignment[var] = value
                 print("\033[92mConsistent\033[0m: %s added to assignment (%s)" % (value, assignment))
-
             
-            domain_save = deepcopy(self.domains)
-            # Preemptively set current domain to chosen value
-            self.domains[var] = [value]
-            inferences = self.ac_3()
-            print("\033[96mAC3: Domain reduced from\033[0m %s \033[96mto\033[0m %s" % (domain_save, self.domains))
-            forward_assignments = [(var, self.domains[var][0]) for var in self.domains 
-                                    if len(self.domains[var]) == 1 and var not in assignment]
-            if inferences:
-                print("\033[96mAdding inferences to assignment:\033[0m %s" % forward_assignments)
-                self.add_assignments(forward_assignments, assignment)
-                result = self.back_track(assignment)
-                if result:
-                    return result
-            
-            print("\033[96mResetting current domain from\033[0m %s \033[96mto\033[0m %s" % (self.domains, domain_save))
-            # We have reached a dead end or inconsistency. Reset our domain and assignment to before value was set.
-            self.domains = domain_save
-            if inferences:
-                print("Removing %s from assignment: %s" % (forward_assignments.append((var, value)), assignment))
-                self.del_assignments(forward_assignments.append((var, value)), assignment)
-                print("Removal successful. New assignment: %s" % assignment)
+                domain_save = deepcopy(self.domains)
+                # Preemptively set current domain to chosen value
+                self.domains[var] = [value]
+                inferences = self.ac_3()
+                print("\033[96mAC3: Domain reduced from\033[0m %s \033[96mto\033[0m %s" % (domain_save, self.domains))
+                forward_assignments = [(var, self.domains[var][0]) for var in self.domains 
+                                        if len(self.domains[var]) == 1 and var not in assignment]
+                print("Forward checking assignments: %s" % forward_assignments)
+                if inferences:
+                    print("\033[96mAdding inferences to assignment:\033[0m %s" % forward_assignments)
+                    self.add_assignments(forward_assignments, assignment)
+                    result = self.back_track(assignment)
+                    if result:
+                        return result
+                
+                forward_assignments.append((var, value))
+                print("Forward checking assignments backtracked: %s" % forward_assignments)
+                print("\033[96mResetting current domain from\033[0m %s \033[96mto\033[0m %s" % (self.domains, domain_save))
+                # We have reached a dead end or inconsistency. Reset our domain and assignment to before value was set.
+                self.domains = domain_save
+                if inferences:
+                    print("Removing %s from assignment: %s" % (forward_assignments, assignment))
+                    self.del_assignments(forward_assignments, assignment)
+                    print("Removal successful. New assignment: %s" % assignment)
         
         return False
 
     def add_assignments(self, forward_assignments: List[tuple], assignment: Dict[int, int]):
+        """
+        Summary line.
+
+        Extended description of function.
+
+        Parameters
+        ----------
+        arg1 : int
+            Description of arg1
+
+        Returns
+        -------
+        int
+            Description of return value
+
+        """
         for variable, value in forward_assignments:
             assignment[variable] = value
 
     def del_assignments(self, forward_assignments: List[tuple], assignment: Dict[int, int]):
+        """
+        Summary line.
+
+        Extended description of function.
+
+        Parameters
+        ----------
+        arg1 : int
+            Description of arg1
+
+        Returns
+        -------
+        int
+            Description of return value
+
+        """
         for variable, _ in forward_assignments:
             del assignment[variable]
 
+    def select_unassigned_var(self, assignment: Dict[int, int]):
+        """
+        Summary line.
+
+        Extended description of function.
+
+        Parameters
+        ----------
+        arg1 : int
+            Description of arg1
+
+        Returns
+        -------
+        int
+            Description of return value
+
+        """
+        # Process variable with Minimum Remaining Value (MRV) Heuristic
+        print("MRV started...")
+        domain_size = sys.maxsize
+        for var in self.domains:
+            print("Evaluating domain size of %s" % var)
+            if var not in assignment and len(self.domains[var]) < domain_size:
+                domain_size = len(self.domains[var])
+
+        print("Minimum domain size is %s" % domain_size)
+        
+        tied_vars = [var for var in self.domains if var not in assignment and len(self.domains[var]) == domain_size]
+
+        if len(tied_vars) == 1:
+            return tied_vars[0]
+
+        # Process remaining variables with Degree Heuristic
+        print("Degree H started...")
+        print("Variables with domains of size %s: %s" % (domain_size, tied_vars))
+        ret_var = tied_vars[0]
+        max_constraints = 0
+        for var in tied_vars:
+            cur_constraints = 0
+            for arc, _ in self.constraints[var]:
+                if len(arc) == 2 and arc[1] not in assignment:
+                    cur_constraints += 1
+
+            print("Number of constraints for variable %s: %s" % (var, cur_constraints))
+            if cur_constraints > max_constraints:
+                max_constraints = cur_constraints
+                ret_var = var
+        
+        return ret_var
+
     def get_ordered_domain(self, variable: int, assignment: Dict[int, int]):
+        """
+        Summary line.
+
+        Extended description of function.
+
+        Parameters
+        ----------
+        arg1 : int
+            Description of arg1
+
+        Returns
+        -------
+        int
+            Description of return value
+
+        """
         # To be changed to "Least Constraining Value" heuristic
-        return self.domains[variable]
+        # return deepcopy(self.domains[variable])
+        ordered_domains = {}
+        constraints = [(arc, constraint) for arc, constraint in self.constraints[variable] if len(arc) == 2]
+        for value in self.domains[variable]:
+            ordered_domains[value] = 0
+            for arc, constraint in constraints:
+                for arc_value in self.domains[arc[1]]:
+                    if not constraint(value, arc_value):
+                        ordered_domains[value] += 1
+
+        # print(ordered_domains.items())
+        # print(sorted(ordered_domains.items(), key=lambda item: item[1]))
+        return [var for var, _ in sorted(ordered_domains.items(), key=lambda item: item[1])]
 
     def is_consistent(self, variable: int, value: int, assignment: Dict[int, int]):
+        """
+        Summary line.
+
+        Extended description of function.
+
+        Parameters
+        ----------
+        arg1 : int
+            Description of arg1
+
+        Returns
+        -------
+        int
+            Description of return value
+
+        """
         assigned_variables = [(var, assignment[var]) for var in assignment if var != variable]
         for constraint in self.constraints[variable]:
             if constraint[0] == (variable, ) and not constraint[1](value):
@@ -84,20 +244,54 @@ class CSP():
         return True
 
     def ac_3(self):
-        queue = self.arcs[:]
-        while queue:
-            (x, y) = queue.pop(0)
-            revised = self.revise(x, y)
-            if not self.domains[x]:
-                return False
-    
-            if revised:
-                neighbors = [arc for arc in self.arcs if arc[1] == x]
-                queue = queue + neighbors
+        """
+        Summary line.
+
+        Extended description of function.
+
+        Parameters
+        ----------
+        arg1 : int
+            Description of arg1
+
+        Returns
+        -------
+        int
+            Description of return value
+
+        """
+        if self.forward_check:
+            print("AC3 ACTIVATED")
+            queue = self.arcs[:]
+            while queue:
+                (x, y) = queue.pop(0)
+                revised = self.revise(x, y)
+                if not self.domains[x]:
+                    return False
+        
+                if revised:
+                    neighbors = [arc for arc in self.arcs if arc[1] == x]
+                    queue = queue + neighbors
 
         return True
 
     def revise(self, x: int, y: int):
+        """
+        Summary line.
+
+        Extended description of function.
+
+        Parameters
+        ----------
+        arg1 : int
+            Description of arg1
+
+        Returns
+        -------
+        int
+            Description of return value
+
+        """
         revised = False
 
         x_dom = self.domains[x]
@@ -128,7 +322,43 @@ class CSP():
         
         return revised
 
+    def print_assignment(self, assignment: Dict[int, int]):
+        """
+        Prints solution to CSP.
+
+        Extended description of function.
+
+        Parameters
+        ----------
+        self : CSP
+            Current CSP object
+        assignment : Dict[int, int]
+            Solution assignment to CSP
+
+        Returns
+        -------
+        None
+        """
+        for x in self.variables:
+            print(assignment[x])
+
     def __str__(self):
+        """
+        Summary line.
+
+        Extended description of function.
+
+        Parameters
+        ----------
+        arg1 : int
+            Description of arg1
+
+        Returns
+        -------
+        int
+            Description of return value
+
+        """
         arcs = []
         for var in self.constraints:
             for arc in self.constraints[var]:
@@ -145,15 +375,38 @@ def main():
         return
 
     V, D, C = process_file(sys.argv[1])
-    forward_check = sys.argv[2]
+    forward_check = int(sys.argv[2])
     csp = CSP(V, D, C, forward_check)
+
+    # csp.get_ordered_domain(1, {})
     # print(csp)
     # csp.ac_3()
-    # print(csp)
-    assignment = csp.back_track()
-    print("\n\033[92mFinal Assignment:\033[0m %s" % assignment)
+    print(csp)
+
+    assignment = {0:1}
+    print(csp.select_unassigned_var(assignment))
+
+    # assignment = csp.back_track()
+    # print("\n\033[92mFinal Assignment:\033[0m %s" % assignment)
+    # csp.print_assignment(assignment)
 
 def process_file(file):
+    """
+    Summary line.
+
+    Extended description of function.
+
+    Parameters
+    ----------
+    arg1 : int
+        Description of arg1
+
+    Returns
+    -------
+    int
+        Description of return value
+
+    """
     f = open(file, "r")
     split_lines = []
 
@@ -166,6 +419,22 @@ def process_file(file):
     return make_CSP_components(split_lines)
 
 def make_CSP_components(lines: list):
+    """
+    Summary line.
+
+    Extended description of function.
+
+    Parameters
+    ----------
+    arg1 : int
+        Description of arg1
+
+    Returns
+    -------
+    int
+        Description of return value
+
+    """
     # Get number of variables
     num_vars = 0
     for i in range(1, len(lines)):
@@ -209,6 +478,22 @@ def make_CSP_components(lines: list):
     return V, D, C
 
 def make_constraints(constraint: str, C: Dict[int, list]):
+    """
+    Summary line.
+
+    Extended description of function.
+
+    Parameters
+    ----------
+    arg1 : int
+        Description of arg1
+
+    Returns
+    -------
+    int
+        Description of return value
+
+    """
     # Comparison operators
     comp_ops = {
         "==": (int.__eq__, int.__eq__),
