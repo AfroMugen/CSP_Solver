@@ -1,0 +1,26 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: csp_solver/problem_file_1",
+            "type": "python",
+            "request": "launch",
+            "program": "./csp_solver.py",
+            "args": ["./problem_files/problem_file_1.txt", "1"],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: csp_solver/problem_file_2",
+            "type": "python",
+            "request": "launch",
+            "program": "./csp_solver.py",
+            "args": ["./problem_files/problem_file_2.txt", "1"],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
+    ]
+}
