@@ -1,5 +1,5 @@
 import sys
-import time
+# import time
 from copy import deepcopy
 from typing import List, Dict
 
@@ -438,12 +438,12 @@ def main():
     # assignment = {0:1}
     # print(csp.select_unassigned_var(assignment))
 
-    start = time.time()
+    # start = time.time()
     assignment = csp.back_track()
     # print("\n\033[92mFinal Assignment:\033[0m %s" % assignment)
     csp.print_assignment(assignment)
-    print("Backtrack ran for: %s" % str(time.time() - start))
-    print("Backtrack was called: %s" % csp.calls_to_backtrack)
+    # print("Backtrack ran for: %s" % str(time.time() - start))
+    # print("Backtrack was called: %s" % csp.calls_to_backtrack)
 
 def process_file(file):
     """
