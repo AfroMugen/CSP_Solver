@@ -1,7 +1,7 @@
-from copy import deepcopy
 import sys
+import time
+from copy import deepcopy
 from typing import List, Dict
-from itertools import permutations
 
 class CSP():
     def __init__(self, variables: list, domains: Dict[int, List], constraints: Dict[int, List], forward_check: bool):
@@ -10,6 +10,7 @@ class CSP():
         self.constraints = constraints
         self.arcs = self.get_arcs()
         self.forward_check = forward_check
+        self.calls_to_backtrack = 0
 
     def get_arcs(self):
         """
@@ -59,6 +60,7 @@ class CSP():
         # print("\n\033[91mCurrent assignment:\033[0m %s" % assignment)
 
         # Base case. Check complete assignment
+        self.calls_to_backtrack += 1
         if len(assignment) == len(self.variables):
             return assignment
 
@@ -436,9 +438,12 @@ def main():
     # assignment = {0:1}
     # print(csp.select_unassigned_var(assignment))
 
+    start = time.time()
     assignment = csp.back_track()
     # print("\n\033[92mFinal Assignment:\033[0m %s" % assignment)
     csp.print_assignment(assignment)
+    print("Backtrack ran for: %s" % str(time.time() - start))
+    print("Backtrack was called: %s" % csp.calls_to_backtrack)
 
 def process_file(file):
     """
