@@ -391,8 +391,13 @@ class CSP():
         -------
         None
         """
-        for x in self.variables:
-            print(assignment[x])
+        if assignment:
+            for x in self.variables:
+                print(assignment[x])
+            
+            return
+        
+        print("NO SOLUTION")
 
     def __str__(self):
         """
