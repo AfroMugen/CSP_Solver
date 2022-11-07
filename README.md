@@ -10,14 +10,14 @@ An example input would look like:
   
 Problem files are always of the same format:
 
--List of domains consisting of a sequence of colon separated integers.
+- List of domains consisting of a sequence of colon separated integers.
   
--Every line after is a constraint of the format:
+- Every line after is a constraint of the format:
   
-  -Integer * Variable + Integer Rel Variable/Integer
+  - Integer * Variable + Integer Rel Variable/Integer
     
-  -Rel is a comparison operator (==, !==, <=, >=, etc.)
+  - Rel is a comparison operator (==, !==, <=, >=, etc.)
     
-  -Variables are always of the form "Xi" where i is a non-negative integer
+  - Variables are always of the form "Xi" where i is a non-negative integer
     
 There are example files within the problem_files folder.
