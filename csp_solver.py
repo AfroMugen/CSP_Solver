@@ -1,7 +1,7 @@
 import sys
-# import time
+import time
 from copy import deepcopy
-from typing import List, Dict
+from typing import List, Dict, Tuple, Callable
 
 class CSP():
     def __init__(self, variables: list, domains: Dict[int, List], constraints: Dict[int, List], forward_check: bool):
@@ -385,7 +385,7 @@ class CSP():
         self : CSP
             Current CSP object
         assignment : Dict[int, int]
-            Solution assignment to CSP
+            Solution to CSP
 
         Returns
         -------
@@ -401,19 +401,19 @@ class CSP():
 
     def __str__(self):
         """
-        Summary line.
+        Print CSP.
 
-        Extended description of function.
+        Print a string representation of the current state of the CSP.
 
         Parameters
         ----------
-        arg1 : int
-            Description of arg1
+        self : CSP
+            Current CSP object
 
         Returns
         -------
-        int
-            Description of return value
+        str
+            String representation of CSP
 
         """
         arcs = []
@@ -424,94 +424,122 @@ class CSP():
         return f"\nVariables: {self.variables}\nDomains: {self.domains}\nConstraints: {arcs}\nArcs: {self.arcs}"
 
 
-def main():
-    if len(sys.argv) != 3:
-        print("\033[93m" + "Warning: csp_solver.py requires two arguments in the form of "
-        + "\"python csp_solver.py [problem_filename] [use_forward_check_flag]\". \nExample: " 
-        + "\"python csp_solver.py ./problem_files/problem_file_1.txt true\"" + "\033[0m")
-        return
-
-    V, D, C = process_file(sys.argv[1])
-    forward_check = int(sys.argv[2])
-    csp = CSP(V, D, C, forward_check)
-
-    # csp.get_ordered_domain(1, {})
-    # print(csp)
-    # csp.ac_3()
-    # print(csp)
-
-    # assignment = {0:1}
-    # print(csp.select_unassigned_var(assignment))
-
-    # start = time.time()
-    assignment = csp.back_track()
-    # print("\n\033[92mFinal Assignment:\033[0m %s" % assignment)
-    csp.print_assignment(assignment)
-    # print("Backtrack ran for: %s" % str(time.time() - start))
-    # print("Backtrack was called: %s" % csp.calls_to_backtrack)
-
-def process_file(file):
+def process_problem_file(file: str):
     """
-    Reads in file into a list.
+    Reads file into a list.
 
-    Delimits domain line into first row of list and subsequent lines
-    will be filled with constraints.
+    Reads and splits first line into problem's domains. All subsequent
+    lines are read and split into problem's constraints.
 
     Parameters
     ----------
     file : str
-        Problem file name
+        File name of problem
 
     Returns
     -------
-    tuple
-        Tuple containing Variable Dict, Domain Dict, and Constraint Dict
-        created in make_CSP_coponents.
-
+    Tuple[List[int], Dict[int, List[int]], Dict[int, List[Tuple[Tuple[int, int], Callable[[int], boolean]]]]]
+        Tuple containing components of a CSP created in make_CSP_components.
     """
-    f = open(file, "r")
     split_lines = []
+    with open(file, 'r') as f:
+        line = f.readline()
+        split_lines.append(line.strip().split(":"))
+        for line in f:
+            split_lines.append(line.split())
 
-    line = f.readline()
-    split_lines.append(line.strip().split(":"))
-
-    for line in f:
-        split_lines.append(line.split())
-
+    is_valid, error_line = is_valid_problem(split_lines)
+    if not is_valid:
+        sys.exit("\033[93mInvalid problem file: Error in %s on line %s.\033[0m" % (file, error_line))
+        
     return make_CSP_components(split_lines)
 
-def make_CSP_components(lines: list):
+def is_valid_problem(problem: List[List[str]]):
     """
-    Construct Variable, Domain, and Constraint lists.
+    Checks for valid CSP.
 
-    Uses read in lines to construct three dictoinaries that house the variable names, 
+    Takes problem list and checks if it contains a valid CSP.
+
+    Parameters
+    ----------
+    problem : List[List[str]]
+        List representing CSP
+
+    Returns
+    -------
+    Tuple[boolean, int]
+        Tuple (isvalid, first invalid line number or 0 if problem is valid)
+    """
+    operators = {'==', '!=', '<', '>', '<=', '>='}
+
+    # Check all domain ranges are positive integers
+    if not all([domain.isnumeric() for domain in problem[0]]):
+        return False, 1
+
+    # Check all constraints to be of the format "int * var + int rel int/var"
+    for i in range(1, len(problem)):
+        constraint = problem[i]
+        if len(constraint) != 7:
+            return False, i + 1
+
+        if constraint[1] != '*' or constraint[3] != '+' or not constraint[5] in operators:
+            return False, i + 1
+
+        if constraint[2][0] != 'X':
+            return False, i + 1
+
+        # Check all variable identifiers are positive integers
+        if constraint[6][0] == 'X':
+            ints = (constraint[0], constraint[4])
+            if not constraint[2][1:].isnumeric() or not constraint[6][1:].isnumeric():
+                return False, i + 1
+        else:
+            ints = (constraint[0], constraint[4], constraint[6])
+            if not constraint[2][1:].isnumeric():
+                return False, i + 1
+
+        # Check all constants are valid integers
+        try:
+            for integer in ints:
+                int(integer)
+        except:
+            return False, i + 1
+
+    return True, 0
+            
+def make_CSP_components(problem: List[List[str]]):
+    """
+    Construct Variable, Domain, and Constraint containers.
+
+    Uses delimited file lines to construct three containers that house the variable names, 
     domains, and constraints for each variable.
 
     Parameters
     ----------
-    lines : list
-        Lines from problem file delimited into a list.
+    problem : List[List[str]]
+        List representing CSP
 
     Returns
     -------
-    tuple
-        Tuple containing Variable Dict, Domain Dict, and Constraint Dict
-
+    Tuple[List[int], Dict[int, List[int]], Dict[int, List[Tuple[Tuple[int, int], Callable[[int], boolean]]]]]
+        Tuple containing Variable List, Domain Dict, and Constraint Dict
     """
     # Get number of variables
-    num_vars = 0
-    for i in range(1, len(lines)):
-        if int(lines[i][2][1:]) > num_vars:
-            num_vars = int(lines[i][2][1:])
-        if lines[i][6][0] == 'X' and int(lines[i][6][1:]) > num_vars:
-            num_vars = int(lines[i][6][1:])
+    max_var = 0
+    for i in range(1, len(problem)):
+        if int(problem[i][2][1:]) > max_var:
+            max_var = int(problem[i][2][1:])
+        if problem[i][6][0] == 'X' and int(problem[i][6][1:]) > max_var:
+            max_var = int(problem[i][6][1:])
+
+    num_vars = len(problem[0]) if len(problem[0]) > max_var + 1 else max_var + 1
     
     # Variable list i.e. [0, 1, 2, ...]
-    V = [i for i in range(num_vars + 1)]
+    V = [i for i in range(num_vars)]
 
     # Make list of domains
-    D_list = [[i for i in range(int(lines[0][j]))] for j in range(len(lines[0]))]
-    while len(D_list) != len(V):
+    D_list = [[i for i in range(int(problem[0][j]))] for j in range(len(problem[0]))]
+    while len(D_list) < len(V):
         D_list.append(D_list[-1])
 
     # Domain list i.e. {0: [0, 1, 2, ...], 1: [0, 1, 2, ...], ...}
@@ -524,31 +552,29 @@ def make_CSP_components(lines: list):
     for i in V:
         C[i] = []
 
-    for i in range(1, len(lines)):
-        line = lines[i]
+    for i in range(1, len(problem)):
+        line = problem[i]
         make_constraints(line, C)
 
     return V, D, C
 
-def make_constraints(constraint: list, C: Dict[int, list]):
+def make_constraints(constraint: List[str], C: Dict[int, List[Tuple[Tuple[int, int], Callable[[int], bool]]]]):
     """
-    Helper function that formats a constraint.
+    Formats contraint.
 
-    Appends a constraint of the form ((x, y), constraint(x, y)) to the constraint
-    dictionary.
+    Appends a constraint of the form ((int, int), Callable([int, int], boolean)) to C.
 
     Parameters
     ----------
-    constraint : list
+    constraint : List[str]
         List containing constraint components (i.e. [int, *, var, +, int, rel, var/int])
 
-    C: Dict[int, list]
+    C: Dict[int, List[Tuple[Tuple[int, int], Callable[[int], bool]]]]
         Dictionary used to store constraints
 
     Returns
     -------
     None
-
     """
     # Comparison operators
     comp_ops = {
@@ -569,6 +595,31 @@ def make_constraints(constraint: list, C: Dict[int, list]):
     else:
         var1, int1, int2, int3, comp = int(constraint[2][1:]), int(constraint[0]), int(constraint[4]), int(constraint[6]), comp_ops[constraint[5]]
         C[var1].append(((var1, ), lambda x: comp[0](int1 * x + int2, int3)))
+
+def main():
+    if len(sys.argv) != 3:
+        sys.exit("\033[93m" + "Warning: csp_solver.py requires two arguments in the form of "
+        + "\"python csp_solver.py [problem_filename] [use_forward_check_flag]\". \nExample: " 
+        + "\"python csp_solver.py ./problem_files/problem_file_1.txt true\"" + "\033[0m")
+
+    V, D, C = process_problem_file(sys.argv[1])
+    forward_check = int(sys.argv[2])
+    csp = CSP(V, D, C, forward_check)
+
+    # csp.get_ordered_domain(1, {})
+    # print(csp)
+    # csp.ac_3()
+    # print(csp)
+
+    # assignment = {0:1}
+    # print(csp.select_unassigned_var(assignment))
+
+    # start = time.time()
+    assignment = csp.back_track()
+    # print("\n\033[92mFinal Assignment:\033[0m %s" % assignment)
+    csp.print_assignment(assignment)
+    # print("Backtrack ran for: %s" % str(time.time() - start))
+    # print("Backtrack was called: %s" % csp.calls_to_backtrack)
 
 if __name__ == "__main__":
     main()
